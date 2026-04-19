@@ -1,6 +1,7 @@
 # import librosa
 # import nltk when starting for the first time uncoment nltk and download the package
-# nltk.download('punkt')
+#import nltk
+#nltk.download('punkt')
 
 import sys
 from gtts import gTTS
@@ -21,20 +22,33 @@ import time
 from io import BytesIO
 from pydub import AudioSegment
 from pydub.playback import play
+from token_loader import load_token
+import os
+
+CACHE_DIR = "cache_dir"
+
+AI_TOKEN = load_token("nagaai_token")
+HF_TOKEN = load_token("hf_token")
+
+os.environ["HF_HOME"] = CACHE_DIR
+os.environ["TRANSFORMERS_CACHE"] = CACHE_DIR
+os.environ["HUGGINGFACE_HUB_CACHE"] = CACHE_DIR
+os.environ["HF_TOKEN"] = HF_TOKEN
 
 
+   
 class TextToSpeech:
     def __init__(self):
         preload_models()
 
     def __call__(self, text: str):
-        if len(str) > 70:
+        if len(text) > 70:
             audio_array = generate_audio_from_long_text(text, prompt="paimon", language="en")
         else:
             audio_array = generate_audio(text, prompt="paimon", language="en")
         sd.play(audio_array, SAMPLE_RATE)
         time.sleep(len(audio_array) / SAMPLE_RATE)
-
+        
 
 class SpeechToText:
     def __init__(self, lang: str, cache_dir: Path = Path("cache_dir")):
@@ -67,7 +81,7 @@ class SpeechToText:
         return self.proc.batch_decode(output_model)[0]
 
 
-client = OpenAI(base_url='https://api.naga.ac/v1', api_key='own token.') #api.naga.ac
+client = OpenAI(base_url='https://api.naga.ac/v1', api_key=AI_TOKEN) #api.naga.ac
 
 
 class PyGPT:
@@ -78,6 +92,7 @@ class PyGPT:
         self.model = model
         self.is_paimon = False
         self.is_translate = False
+        self.speech2text = SpeechToText(lang=self.lang)
 
         if self.tts == "paimon":
             self.is_paimon = True
@@ -120,7 +135,8 @@ class PyGPT:
                                                              " of asking who you are you should reply as paimon and"
                                                              " everthing else related to paimon. You are Paimon."
                                                              " Every time you respond to me, you should address me"
-                                                             " like paimon would and so on."})
+                                                             " like paimon would and so on. Important is that you"
+                                                             " never use any kind of emoji in your reply, never use emoji"})
         elif self.is_translate:
             self.messages.append({"role": "user", "content": "From now on you will only translate from polish to"
                                                              " english. You should not react to any prompt that"
@@ -132,7 +148,8 @@ class PyGPT:
                                                              " and your only task is to only translate the text i"
                                                              " wrote, nothing more, you should not interact in any"
                                                              " other way because it is forbidden,"
-                                                             " you only translate from now on."})
+                                                             " you only translate from now on. Important is that you"
+                                                             " never use any kind of emoji in your reply, never use emoji"})
         self.is_chat = True
 
     def text2gtts(self, text: str):
@@ -146,7 +163,11 @@ class PyGPT:
         tts.write_to_fp(fp)
         fp.seek(0)
         song = AudioSegment.from_file(fp, format="mp3")
-        play(song)
+        audio = np.array(song.get_array_of_samples()).astype(np.float32)
+        audio /= 32768.0
+
+        sd.play(audio, song.frame_rate)
+        sd.wait()
 
     def sendMessage(self, text: str):
         self.messages.append({"role": "user", "content": text})
@@ -159,7 +180,7 @@ class PyGPT:
             print(f"\nPaimonGPT {self.date.year}-{self.date.month}-{self.date.day}"
                   f" {self.date.hour}:{self.date.minute}:{self.date.second}  {res}\n")
         else:
-            print(f"\nGPT-3.5 {self.date.year}-{self.date.month}-{self.date.day}"
+            print(f"\nGPT {self.date.year}-{self.date.month}-{self.date.day}"
                   f" {self.date.hour}:{self.date.minute}:{self.date.second}  {res}\n")
 
         time1 = 0.0
@@ -168,7 +189,7 @@ class PyGPT:
             time1 = time.time()
             self.text2speech(res)  # paimon voice
             time2 = time.time()
-        elif self.tts == "gtts" or "gTTS":
+        elif self.tts in ("gtts", "gTTS"):
             time1 = time.time()
             self.text2gtts(res)  # gtts
             time2 = time.time()
@@ -181,6 +202,8 @@ class PyGPT:
         speech2text = SpeechToText(lang=self.lang)
         recorder = PvRecorder(device_index=device_index, frame_length=512)
         energy_threshold = 0.5
+        silence_frames = 0
+        silence_limit = 30
         recording = []
         while True:
             time.sleep(3)
@@ -196,31 +219,37 @@ class PyGPT:
             while True:
                 audio_chunk = recorder.read()
                 rms_energy = max(audio_chunk)
+
+                recording.extend(audio_chunk)
+
                 if rms_energy > energy_threshold * 2 * 1000:
                     is_talking = True
+                    silence_frames = 0
                     print("...")
-                recording.extend(audio_chunk)
+                else:
+                    if is_talking:
+                        silence_frames += 1
                 if len(recording) >= 680448:
                     recorder.stop()
                     recording.clear()
                     break
-                # print(len(recording))
-                if is_talking and rms_energy < energy_threshold * 2 * 15:
-                    time.sleep(2)
-                    if rms_energy > energy_threshold * 2 * 1000:
-                        continue
+
+                if is_talking and silence_frames > silence_limit:
                     print("Stopped recording due to silence!")
-                    time.sleep(0.3)
                     recorder.stop()
+
                     recording_arr = np.array(recording, dtype=float)
                     recording_arr /= np.max(np.abs(recording_arr))
+
                     text = speech2text(recording_arr)
                     print(f"\n\nUser: {text}")
+
                     if text == "exit":
                         sys.exit()
 
                     self.sendMessage(text)
                     self.receiveMessage()
+
                     recording.clear()
                     break
 
@@ -231,7 +260,7 @@ class PyGPT:
         sd.wait()
 
 if __name__ == "__main__":
-    chat = PyGPT(model="gpt-3.5-turbo", lang="en", tts="paimon")
+    chat = PyGPT(model="gpt-4.1-mini-2025-04-14:free", lang="en", tts="paimon")
 
     print("\nDostępne urządzenia nagrywające:")
     for index, device in enumerate(PvRecorder.get_available_devices()):
