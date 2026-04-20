@@ -76,7 +76,7 @@ cleanup() {
     # iterate through dirs for removal
 	for dir in "${DIRS[@]}"; do
 		printf "\n"
-		if [ -d "$dir" ]; then
+		if [[ -d "$dir" ]]; then
 			read -r -p "Remove $dir? (y/N): " answer
 			if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
 				printf "Removing %s...\n" "$dir"
@@ -95,20 +95,20 @@ cleanup() {
 
 
 token_setup() {
-		if [ ! -d "$TOKENS_DIR" ]; then
+		if [[ ! -d "$TOKENS_DIR" ]]; then
 		printf "\n===== Token setup =====\n"
 		mkdir -p "$TOKENS_DIR"
 		TOKENS=("hf_token" "nagaai_token")
 		for TOKEN in "${TOKENS[@]}"; do
 			FILE="$TOKENS_DIR/$TOKEN"
-		    	if [ ! -f "$FILE" ]; then
+		    	if [[ ! -f "$FILE" ]]; then
 				printf "\nCreating $FILE\n"
 				touch "$FILE"
 			fi
 
 		    	CONTENT=$(cat "$FILE")
 
-		    	if [ -z "$CONTENT" ]; then
+		    	if [[ -z "$CONTENT" ]]; then
 				printf "\nEnter $TOKEN: \n"
 				read -r -p INPUT
 				printf "$INPUT\n" > "$FILE"
@@ -137,7 +137,7 @@ main() {
 
 	run "Checking Python 3.11..." python3.11 --version
 
-	if [ ! -d "$VENV_DIR" ]; then
+	if [[ ! -d "$VENV_DIR" ]]; then
 		run "Creating virtual environment..." python3.11 -m venv venv
 		
 	else
@@ -146,7 +146,7 @@ main() {
 	fi
 	run "Upgrading pip, setuptools, wheel..." venv/bin/pip install --upgrade pip setuptools wheel
 
-	if [ ! -f "checkpoints/vallex-checkpoint.pt" ]; then
+	if [[ ! -f "checkpoints/vallex-checkpoint.pt" ]]; then
 	    run -v "" bash -c '
 		mkdir -p checkpoints
 		printf "\bDownloading Plachtaa/VALL-E-X checkpoint...\n"
@@ -158,7 +158,7 @@ main() {
 	fi
 
 	venv/bin/python -c "import torch" >/dev/null 2>&1
-	if [ $? -ne 0 ]; then
+	if [[ $? -ne 0 ]]; then
 		#printf "Downloading Torch CUDA...."
 		run "Downloading PyTorch CUDA..." venv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 	else
@@ -169,7 +169,7 @@ main() {
 	run "Installing Python packages via requirements.txt..." venv/bin/pip install -r requirements.txt
 
 
-	if [ ! -d "$CACHE_DIR" ]; then
+	if [[ ! -d "$CACHE_DIR" ]]; then
 		#printf "Downloading Speech-to-Text models...\n"
 		run "Downloading Speech-to-Text models...\n" venv/bin/python preload_models.py
 	else
