@@ -6,6 +6,10 @@
 TOKENS_DIR="user_tokens"
 VENV_DIR="venv"
 CHECKPOINT_DIR="checkpoints"
+CACHE_DIR="cache_dir"
+NLTK_DIR="nltk_data"
+
+DIRS=("$TOKENS_DIR" "$VENV_DIR" "$CHECKPOINT_DIR" "$CACHE_DIR" "$NLTK_DIR")
 
 
 #  spinner loader
@@ -66,35 +70,29 @@ cleanup() {
 
     # disable CTRL+C after aborting
 	trap - INT
-	if [ -d "$CHECKPOINT_DIR" ]; then
-		read -r -p "Remove checkpoints directory? (y/N): " answer
 
-	    	if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
-			printf "Removing checkpoints...\n"
-			rm -rf checkpoints
-			printf "Cleanup complete.\n"
-	    	else
-			printf "Keeping checkpoints.\n"
-	    	fi
-	fi
+	tput cnorm
 
-	if [ -d "$VENV_DIR" ]; then
+    # iterate through dirs for removal
+	for dir in "${DIRS[@]}"; do
 		printf "\n"
-	    	read -r -p "Remove python3.11 venv? (y/N): " answer
-
-	    	if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
-			printf "Removing venv...\n"
-			rm -rf venv
+		read -r -p "Remove $dir? (y/N): " answer
+		if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
+			printf "Removing %s...\n" "$dir"
+			rm -rf "$dir"
 			printf "Cleanup complete.\n"
 		else
-			printf "Keeping venv.\n"
+			printf "Keeping %s.\n" "$dir"
 	    	fi
-	fi
+	done
+
+	printf "\n\nDONE\n"
+
 	exit 130
 }
 
 
-token_setup() {	
+token_setup() {
 		if [ ! -d "$TOKENS_DIR" ]; then
 		printf "\n===== Token setup =====\n"
 		mkdir -p "$TOKENS_DIR"
@@ -110,7 +108,7 @@ token_setup() {
 
 		    	if [ -z "$CONTENT" ]; then
 				printf "\nEnter $TOKEN: \n"
-				read -r INPUT
+				read -r -p INPUT
 				printf "$INPUT\n" > "$FILE"
 		    	else
 				printf "$TOKEN already set \n"
@@ -123,10 +121,16 @@ token_setup() {
 }
 
 main() {
+
 #  TOKEN SETUP
+
 	token_setup
 
 #  INSTALLER MAIN
+	#  restoring cursor on exit
+	trap 'tput cnorm' EXIT
+
+	tput civis
 	printf "\n===== PyGPT Installer =====\n\n"
 
 	run "Checking Python 3.11..." python3.11 --version
@@ -135,7 +139,7 @@ main() {
 		run "Creating virtual environment..." python3.11 -m venv venv
 		
 	else
-		printf "Virtual enviroment already created... ✔ \n"
+		printf "Virtual enviroment already created...✔ \n"
 			
 	fi
 	run "Upgrading pip, setuptools, wheel..." venv/bin/pip install --upgrade pip setuptools wheel
@@ -148,27 +152,31 @@ main() {
 		"https://huggingface.co/Plachta/VALL-E-X/resolve/main/vallex-checkpoint.pt" \
 	    '
 	else
-		printf "Checkpoint already exists\n"
+		printf "VALL-E-X checkpoint already exists...✔ \n"
 	fi
 
-	venv/bin/python -c "import torch" 2>/dev/null
+	venv/bin/python -c "import torch" >/dev/null 2>&1
 	if [ $? -ne 0 ]; then
 		#printf "Downloading Torch CUDA...."
-		run "Downloading Torch CUDA..." venv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+		run "Downloading PyTorch CUDA..." venv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 	else
-		printf "Torch CUDA already installed!"
+		run "Checking for PyTorch CUDA..." venv/bin/python -c "import torch" 
+		printf "PyTorch CUDA already installed...✔ \n"
 	fi
 
-	run "Installing requirements..." venv/bin/pip install -r requirements.txt
+	run "Installing Python packages via requirements.txt..." venv/bin/pip install -r requirements.txt
 
-	run -v "" venv/bin/python preload_models.py
 
-	#run "Preloading Speech-to-Text models..." venv/bin/python preload_models.py
+	if [ ! -d "$CACHE_DIR" ]; then
+		#printf "Downloading Speech-to-Text models...\n"
+		run "Downloading Speech-to-Text models...\n" venv/bin/python preload_models.py
+	else
+		printf "Speech-to-Text models already downloaded...✔ "
+	fi
 
-	printf "\nDONE\n\n"
+	printf "\n\n===== INSTALLATION SUCCESSFUL ===== \n\n"
 
-	printf "== INSTALLATION SUCCESSFUL == \n\n"
-
+	tput cnorm
 	read -p "Press enter to exit..."
 }
 

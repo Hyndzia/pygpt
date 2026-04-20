@@ -1,9 +1,9 @@
-    """
+"""
     Token loader utility for pygpt.
 
     Loads token from user_tokens/<name>
     Example: load_token("hf_token")
-    """
+"""
 from pathlib import Path
 
 TOKENS_DIR = Path("user_tokens")

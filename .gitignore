@@ -155,6 +155,8 @@ cython_debug/
 #pypgt installation directories
 user_tokens/
 checkpoints/
+cache_dir/
+nltk_data/
 
 
 
