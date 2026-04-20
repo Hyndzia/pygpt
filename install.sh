@@ -76,14 +76,16 @@ cleanup() {
     # iterate through dirs for removal
 	for dir in "${DIRS[@]}"; do
 		printf "\n"
-		read -r -p "Remove $dir? (y/N): " answer
-		if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
-			printf "Removing %s...\n" "$dir"
-			rm -rf "$dir"
-			printf "Cleanup complete.\n"
-		else
-			printf "Keeping %s.\n" "$dir"
-	    	fi
+		if [ -d "$dir" ]; then
+			read -r -p "Remove $dir? (y/N): " answer
+			if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
+				printf "Removing %s...\n" "$dir"
+				rm -rf "$dir"
+				printf "Cleanup complete.\n"
+			else
+				printf "Keeping %s.\n" "$dir"
+			fi
+		fi
 	done
 
 	printf "\n\nDONE\n"
