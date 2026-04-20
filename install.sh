@@ -96,13 +96,13 @@ cleanup() {
 
 token_setup() {	
 		if [ ! -d "$TOKENS_DIR" ]; then
-		printf "\n===== Token setup =====\n\n"
+		printf "\n===== Token setup =====\n"
 		mkdir -p "$TOKENS_DIR"
 		TOKENS=("hf_token" "nagaai_token")
 		for TOKEN in "${TOKENS[@]}"; do
 			FILE="$TOKENS_DIR/$TOKEN"
 		    	if [ ! -f "$FILE" ]; then
-				printf "Creating $FILE\n"
+				printf "\nCreating $FILE\n"
 				touch "$FILE"
 			fi
 
@@ -116,7 +116,7 @@ token_setup() {
 				printf "$TOKEN already set \n"
 		    	fi
 		done
-		printf "Tokens ready.\n\n"
+		printf "\n===== Tokens ready =====\n\n"
 		sleep 2.1
 		#clear
 		fi
