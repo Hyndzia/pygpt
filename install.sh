@@ -161,8 +161,7 @@ main() {
 	if [[ $? -ne 0 ]]; then
 		#printf "Downloading Torch CUDA...."
 		run "Downloading PyTorch CUDA..." venv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-	else
-		run "Checking for PyTorch CUDA..." venv/bin/python -c "import torch" 
+	else 
 		printf "PyTorch CUDA already installed...✔ \n"
 	fi
 
