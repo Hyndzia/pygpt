@@ -157,12 +157,14 @@ main() {
 		printf "VALL-E-X checkpoint already exists...✔ \n"
 	fi
 
+	printf "Checking for PyTorch CUDA..."  
 	venv/bin/python -c "import torch" >/dev/null 2>&1
 	if [[ $? -ne 0 ]]; then
 		#printf "Downloading Torch CUDA...."
+		printf "\r\033[2K"
 		run "Downloading PyTorch CUDA..." venv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 	else 
-		printf "PyTorch CUDA already installed...✔ \n"
+		printf "\nPyTorch CUDA already installed...✔ \n"
 	fi
 
 	run "Installing Python packages via requirements.txt..." venv/bin/pip install -r requirements.txt
