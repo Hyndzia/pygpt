@@ -38,14 +38,18 @@ os.environ["HF_TOKEN"] = HF_TOKEN
 
    
 class TextToSpeech:
-    def __init__(self):
+    def __init__(self, voice: str = "paimon"):
+        self.voice = voice
         preload_models()
 
-    def __call__(self, text: str):
+    def synthesize(self, text: str) -> np.ndarray:
+        """Generuje próbki mowy (bez odtwarzania)."""
         if len(text) > 70:
-            audio_array = generate_audio_from_long_text(text, prompt="paimon", language="en")
-        else:
-            audio_array = generate_audio(text, prompt="paimon", language="en")
+            return generate_audio_from_long_text(text, prompt=self.voice, language="en")
+        return generate_audio(text, prompt=self.voice, language="en")
+
+    def __call__(self, text: str):
+        audio_array = self.synthesize(text)
         sd.play(audio_array, SAMPLE_RATE)
         time.sleep(len(audio_array) / SAMPLE_RATE)
         
@@ -89,14 +93,15 @@ class PyGPT:
         self.lang = lang
         self.tlang = None
         self.tts = tts
+        self.voice = None if str(tts).lower() == "gtts" else tts
         self.model = model
         self.is_paimon = False
         self.is_translate = False
         self.speech2text = SpeechToText(lang=self.lang)
 
-        if self.tts == "paimon":
-            self.is_paimon = True
-            self.text2speech = TextToSpeech()
+        if self.voice:
+            self.is_paimon = self.voice == "paimon"
+            self.text2speech = TextToSpeech(voice=self.voice)
 
         elif tlang != "default":
             self.is_translate = True
@@ -107,8 +112,8 @@ class PyGPT:
         if self.is_translate and not lang == "pl":
             raise ValueError("language is not set to 'pl'!")
 
-        if self.is_paimon and not lang == "en":
-            raise ValueError(f"\n\n[Paimon voice is supported only by english!]\n"
+        if self.voice and not lang == "en":
+            raise ValueError(f"\n\n[VALL-E X voices support English only!]\n"
                              f"[lang = '{lang}'!!]\n"
                              f"[Set language value to 'en': lang = 'en']")
 
@@ -152,7 +157,7 @@ class PyGPT:
                                                              " never use any kind of emoji in your reply, never use emoji"})
         self.is_chat = True
 
-    def text2gtts(self, text: str):
+    def gtts_audio(self, text: str):
         if not self.is_translate:
             gtts_lang = self.lang
         else:
@@ -165,8 +170,11 @@ class PyGPT:
         song = AudioSegment.from_file(fp, format="mp3")
         audio = np.array(song.get_array_of_samples()).astype(np.float32)
         audio /= 32768.0
+        return audio, song.frame_rate
 
-        sd.play(audio, song.frame_rate)
+    def text2gtts(self, text: str):
+        audio, samplerate = self.gtts_audio(text)
+        sd.play(audio, samplerate)
         sd.wait()
 
     def sendMessage(self, text: str):
@@ -185,9 +193,9 @@ class PyGPT:
 
         time1 = 0.0
         time2 = 0.0
-        if self.tts == "paimon":
+        if self.voice:
             time1 = time.time()
-            self.text2speech(res)  # paimon voice
+            self.text2speech(res)  # VALL-E X voice preset
             time2 = time.time()
         elif self.tts in ("gtts", "gTTS"):
             time1 = time.time()
@@ -260,9 +268,9 @@ class PyGPT:
         sd.wait()
 
 if __name__ == "__main__":
-    chat = PyGPT(model="gpt-4.1-mini-2025-04-14:free", lang="en", tts="paimon")
+    chat = PyGPT(model="nemotron-3.5-lightning:free", lang="en", tts="paimon")
 
-    print("\nDostępne urządzenia nagrywające:")
+    print("\nAvailable recording devices:")
     for index, device in enumerate(PvRecorder.get_available_devices()):
         print(f"    [{index}] {device}")
 
