@@ -6,7 +6,7 @@ from [NagaAI](https://naga.ac/), speech recognition (Wav2Vec2) and speech synthe
 the microphone button and talk — the answer is spoken back in the voice you picked,
 with a live oscilloscope showing the waveform.
 
-![Chat window]()
+
 
 ## Features
 
