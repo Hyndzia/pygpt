@@ -185,12 +185,7 @@ assets/yaesakura.png    ←  its icon in the launcher and in the chat
 
 - PNG with transparency is used as-is; a plain photo is cropped into a circle.
 - Supported formats: `.png`, `.webp`, `.jpg`, `.jpeg`, `.gif`.
-- To regenerate placeholder icons for all voices (new presets included):
 
-```bash
-python tools/make_avatars.py          # skips files that already exist
-python tools/make_avatars.py --force  # overwrite everything
-```
 
 ## Models
 
@@ -221,12 +216,11 @@ utils/generation.py         VALL-E X inference and preset resolution
 utils/g2p/                  phoneme/G2P helpers, BPE tokenizer
 utils/sentence_cutter.py    splits long answers into sentences
 
-presets/                *.npz voice prompts (33 voices shipped)
+presets/                *.npz voice prompts
 assets/                 voice icons + microphone icon
-tools/make_avatars.py   generates placeholder voice icons
 docs/                   screenshots
-checkpoints/            VALL-E X weights (downloaded, ignored by git)
-cache_dir/              Hugging Face cache (downloaded, ignored by git)
+checkpoints/            VALL-E X weights (after install)
+cache_dir/              Hugging Face cache (after install)
 ```
 
 ## Troubleshooting
@@ -274,4 +268,3 @@ mid-range GPU. The voice model stays in memory after the first use.
 - [Wav2Vec2](https://huggingface.co/docs/transformers/model_doc/wav2vec2) checkpoints:
   [alexcleu/wav2vec2-large-xlsr-polish](https://huggingface.co/alexcleu/wav2vec2-large-xlsr-polish)
   and [jonatasgrosman/wav2vec2-large-xlsr-53-english](https://huggingface.co/jonatasgrosman/wav2vec2-large-xlsr-53-english).
-- Interface built with Python's `tkinter`, audio with `sounddevice` and `pydub`.
